@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>外卖AA付款计算</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="description" content="订餐AA计算;计算订餐后红包和配送费的占比计算;">
+    <meta name="keywords" content="外卖付款计算器;红包计算;优惠计算">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="assets/css/amazeui.min.css">
+    <link rel="stylesheet" href="assets/css/app.css">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+</head>
+
+<body>
+    <div class="header">
+        <div class="am-g">
+            <h1>外卖AA付款计算</h1>
+            <p class="am-monospace">帮你计算订餐后每个人该给多少钱。红包按消费比例减免，配送费按消费比例增加，餐盒费平摊。 可能会有极小的误差（一毛钱）</p>
+        </div>
+        <hr>
+    </div>
+    <div class="am-g">
+        <div class="am-u-lg-6 am-u-md-8 am-u-sm-centered">
+            <form class="am-form ">
+                <fieldset>
+                    <div class="am-form-group">
+                        <label class="am-form-label">订餐人数：</label>
+                        <select name="count" id="count" data-am-selected>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                            <option value="7">7</option>
+                            <option value="8">8</option>
+                            <option value="9">9</option>
+                            <option value="10">10</option>
+                        </select>
+                        <a href="javascript:;" id="custom" >自定义</a>
+                        <input type="text" id="countCustom" pattern="[0-9]" style="display: none;" maxlength="2" max="50" placeholder="请输入人数（数字）">
+                    </div>
+                    <div class="am-form-group">
+                        <label class="am-form-label">原金额(不包含餐盒费)：</label>
+                        <div id="list">
+                            <input type="text" name="item_0" placeholder="第1个人金额">
+                            <input type="text" name="item_1" placeholder="第2个人金额">
+                        </div>
+                    </div>
+
+                    <div class="am-form-group">
+                        <label class="am-form-label">红包和满减优惠总金额：</label>
+                        <input type="text" id="coupon" />
+                    </div>
+                    <div class="am-form-group">
+                        <label class="am-form-label">配送费总金额：</label>
+                        <input type="text" id="send" />
+                    </div>
+                    <div class="am-form-group">
+                        <label class="am-form-label">餐盒费总金额：</label>
+                        <input type="text" id="box" placeholder="" />
+                    </div>
+                </fieldset>
+                <hr>
+                <fieldset>
+                    <div class="am-form-group">
+                        <button type="button" data-am-loading="{spinner: 'circle-o-notch', loadingText: '加载中...', resetText: '计算'}" class="am-btn am-btn-primary am-icon-play" id="submit"> 计算</button>
+                        <button type="reset" data-am-loading="{spinner: 'circle-o-notch', loadingText: '加载中...', resetText: '重置'}" class="am-btn am-btn am-btn-default am-icon-repeat" id="repeat"> 重置</button>
+                    </div>
+                </fieldset>
+                
+            </form>
+        </div>
+        <div class="am-modal am-modal-no-btn" tabindex="-1" id="modal-result">
+            <div class="am-modal-dialog">
+                <div class="am-modal-hd">计算结果
+                    <a href="javascript: void(0)" class="am-close am-close-spin" data-am-modal-close>&times;</a>
+                </div>
+                <div class="am-modal-bd"  id="result">
+                </div>
+            </div>
+        </div>
+        <script src="assets/js/jquery.min.js"></script>
+        <script src="assets/js/amazeui.min.js"></script>
+        <script>
+        var countSelect = document.querySelector("#count"); //人数dom
+        var countCustom = document.querySelector("#countCustom");//人数自定义
+        var countEle = countCustom.style.display == "none" ?  countSelect : countCustom;
+        var listEle = document.querySelector("#list"); //每人花费容器
+        var couponEle = document.querySelector("#coupon"); //优惠金额
+        var sendEle = document.querySelector("#send"); //配送费
+        var boxEle = document.querySelector("#box"); //餐盒费
+        var list = []; //存放每个人的容器；
+        var btn = document.querySelector("#submit");
+        var custom = document.querySelector("#custom");
+        var repeat = document.querySelector("#repeat");
+        custom.onclick = function(){
+            if(countSelect.nextElementSibling.style.display == "none"){
+                countSelect.nextElementSibling.style.display = "inline-block";
+                countCustom.style.display = "none";
+            }else{
+                countSelect.nextElementSibling.style.display = "none";
+                countCustom.style.display = "inline-block";
+            }
+            countEle = countCustom.style.display == "none" ? countSelect : countCustom;
+        }
+
+        btn.onclick = function() {
+            setListBefore();
+            setListAfter();
+            getTotalAfter();
+            formatResult();
+            $('#modal-result').modal();
+        }
+        repeat.onclick = function(){
+            countEle.value = 2;
+            $(countSelect).trigger('changed.selected.amui');
+            $(countCustom).trigger("change");
+        }
+        countSelect.onchange = function() {
+            var count = countSelect.value; //人数
+            formatList(count - 1); //格式化人数列表
+        }
+        countCustom.onchange = function() {
+            var count = parseInt(countCustom.value) || 2; //人数
+            formatList(count - 1); //格式化人数列表
+        }
+
+        function getTotal() {
+            //获取优惠前总金额
+            var _total = 0;
+            var count = countEle.value; //人数
+            for (var i = 0; i < count; i++) {
+                _total += parseFloat(list[i].before);
+            }
+            list['totalbefore'] = _total;
+            return _total;
+        }
+        function getTotalAfter() {
+            //获取优惠前总金额
+            var _total = 0;
+            var coupon = parseFloat(couponEle.value) || 0; //优惠金额
+            var send = parseFloat(sendEle.value) || 0; //配送费
+            var box = parseFloat(boxEle.value) || 0; //餐盒费
+            var count = countEle.value; //人数
+
+            for (var i = 0; i < count; i++) {
+                _total += parseFloat(list[i].before);
+            }
+            _total = _total + send + box - coupon;
+            list['totalafter'] = _total;
+            return _total;
+        }
+
+        function setListBefore() {
+            var count = countEle.value; //人数
+            for (var i = 0; i < count; i++) {
+                setItemBefore(i, document.querySelector("[name=item_" + i + "]").value);
+            }
+            return true;
+        }
+
+        function setItemBefore(idx, value) {
+            //设置每个人之前的金额数据
+            if (list[idx] == undefined) {
+                list[idx] = {};
+            }
+            
+            list[idx].before = parseFloat(value) || 0;
+        }
+
+        function setItemAfter(idx, value) {
+            //设置每个人优惠后的金额数据
+            list[idx].after = parseFloat(value) || 0;
+        }
+
+        function formatList(count) {
+            //格式化人数列表
+            var str = "";
+            for (var i = 0; i <= count; i++) {
+                str += "<input type='text' placeholder='第" + (i + 1) + "个人金额' name='item_" + i + "' />";
+            }
+            listEle.innerHTML = str;
+        }
+
+        function getItemAfter(i) {
+            var coupon = parseFloat(couponEle.value) || 0; //优惠金额
+            var send = parseFloat(sendEle.value) || 0; //配送费
+            var box = parseFloat(boxEle.value) || 0; //餐盒费
+            var total = getTotal(); //优惠前总金额
+            var count = countEle.value; //人数
+            var itemBefore = list[i].before; //当前个人金额
+
+
+            var res = 0;
+            if (itemBefore == 0 && total == 0) {
+                return 0;
+            }
+            res = itemBefore - itemBefore / total * (coupon - send) + box/count;
+            return res;
+        }
+
+        function setListAfter() {
+            var count = countEle.value; //人数
+            for (var i = 0; i < count; i++) {
+                setItemAfter(i, getItemAfter(i));
+            }
+            return true;
+        }
+
+        function formatResult() {
+            var res = document.querySelector("#result"); //结果容器
+            var count = countEle.value; //人数
+            var str = "总应付："+list['totalafter']+"元";
+            for (var i = 0; i < count; i++) {
+                var price = parseFloat(list[i].after).toFixed(1);
+                str += "<div class='res-item'>第" + (i + 1) + "个人应付:" + price + "元</div>";
+            }
+            res.innerHTML = str;
+        }
+        </script>
+        <div style="display: none;">
+            <script type="text/javascript">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cspan id='cnzz_stat_icon_1262802330'%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "s19.cnzz.com/stat.php%3Fid%3D1262802330%26show%3Dpic1' type='text/javascript'%3E%3C/script%3E"));</script>
+        </div>
+</body>
+</html>

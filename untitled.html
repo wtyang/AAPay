@@ -1,0 +1,66 @@
+<view class="header">
+        <view class="am-g">
+            <h1>AA算</h1>
+            <p class="am-monospace"></p>
+        </view>
+        <hr>
+    </view>
+    <view class="am-g">
+        <view class="am-u-lg-6 am-u-md-8 am-u-sm-centered">
+            <form class="am-form ">
+                <fieldset>
+                    <view class="am-form-group">
+                        <label class="am-form-label">订餐人数：</label>
+                        <select name="count" id="count" data-am-selected>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                            <option value="7">7</option>
+                            <option value="8">8</option>
+                            <option value="9">9</option>
+                            <option value="10">10</option>
+                        </select>
+                        <a href="javascript:;" id="custom" style="display: none;" >自定义</a>
+                        <input type="text" id="countCustom" style="display: none;" placeholder="请输入人数（数字）">
+                    </view>
+                    <view class="am-form-group">
+                        <label class="am-form-label">原金额(不包含餐盒费)：</label>
+                        <view id="list">
+                            <input type="text" name="item_0" placeholder="第1个人金额">
+                            <input type="text" name="item_1" placeholder="第2个人金额">
+                        </view>
+                    </view>
+
+                    <view class="am-form-group">
+                        <label class="am-form-label">红包和满减优惠总金额：</label>
+                        <input type="text" id="coupon" />
+                    </view>
+                    <view class="am-form-group">
+                        <label class="am-form-label">配送费总金额：</label>
+                        <input type="text" id="send" />
+                    </view>
+                    <view class="am-form-group">
+                        <label class="am-form-label">餐盒费总金额：</label>
+                        <input type="text" id="box" placeholder="" />
+                    </view>
+                </fieldset>
+                <hr>
+                <fieldset>
+                    <view class="am-form-group">
+                        <button type="button" data-am-loading="{spinner: 'circle-o-notch', loadingText: '加载中...', resetText: '计算'}" class="am-btn am-btn-primary" id="submit">计算</button>
+                    </view>
+                </fieldset>
+                
+            </form>
+        </view>
+        <view class="am-modal am-modal-no-btn" tabindex="-1" id="modal-result">
+            <view class="am-modal-dialog">
+                <view class="am-modal-hd">计算结果
+                    <a href="javascript: void(0)" class="am-close am-close-spin" data-am-modal-close>&times;</a>
+                </view>
+                <view class="am-modal-bd"  id="result">
+                </view>
+            </view>
+        </view>
